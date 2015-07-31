@@ -363,7 +363,13 @@
   <PropertyGroup>
     <NativeBinariesDirectory>$(MSBuildProjectDirectory)\..\Lib\NativeBinaries</NativeBinariesDirectory>
   </PropertyGroup>
-  <Import Project="CopyWindowsNativeDependencies.targets" />
+  <ItemGroup>
+    <None Include="$(NativeBinariesDirectory)\**\*.*">
+      <Link>NativeBinaries\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <Name>%(Filename)</Name>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
   <Import Project="ExtraDefine.targets" />
   <PropertyGroup>
     <PreBuildEvent>
