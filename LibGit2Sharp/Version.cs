@@ -1,5 +1,4 @@
-﻿using System;
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -26,19 +25,6 @@ namespace LibGit2Sharp
         }
 
         /// <summary>
-        /// Returns the <see cref="System.Version" /> of the
-        /// the LibGit2Sharp library.
-        /// </summary>
-        [Obsolete("This property will be removed in the next release. Please use InformationalVersion instead.")]
-        public virtual System.Version MajorMinorPatch
-        {
-            get
-            {
-                return assembly.GetName().Version;
-            }
-        }
-
-        /// <summary>
         /// Returns version of the LibGit2Sharp library.
         /// </summary>
         public virtual string InformationalVersion
@@ -60,10 +46,7 @@ namespace LibGit2Sharp
         /// <returns>A <see cref="BuiltInFeatures"/> enumeration.</returns>
         public virtual BuiltInFeatures Features
         {
-            get
-            {
-                return Proxy.git_libgit2_features();
-            }
+            get { return Proxy.git_libgit2_features(); }
         }
 
         /// <summary>
@@ -71,10 +54,7 @@ namespace LibGit2Sharp
         /// </summary>
         public virtual string LibGit2CommitSha
         {
-            get
-            {
-                return ReadContentFromResource(assembly, "libgit2_hash.txt").Substring(0, 7);
-            }
+            get { return RetrieveAbbrevShaFrom("libgit2_hash.txt"); }
         }
 
         /// <summary>
@@ -82,10 +62,14 @@ namespace LibGit2Sharp
         /// </summary>
         public virtual string LibGit2SharpCommitSha
         {
-            get
-            {
-                return ReadContentFromResource(assembly, "libgit2sharp_hash.txt").Substring(0, 7);
-            }
+            get { return RetrieveAbbrevShaFrom("libgit2sharp_hash.txt"); }
+        }
+
+        private string RetrieveAbbrevShaFrom(string name)
+        {
+            string sha = ReadContentFromResource(assembly, name) ?? "unknown";
+
+            return sha.Substring(0, 7);
         }
 
         /// <summary>
@@ -105,14 +89,13 @@ namespace LibGit2Sharp
         {
             string features = Features.ToString();
 
-            return string.Format(
-                CultureInfo.InvariantCulture,
-                "{0}-{1}-{2} ({3} - {4})",
-                InformationalVersion,
-                LibGit2SharpCommitSha,
-                LibGit2CommitSha,
-                NativeMethods.ProcessorArchitecture,
-                features);
+            return string.Format(CultureInfo.InvariantCulture,
+                                 "{0}-{1}-{2} ({3} - {4})",
+                                 InformationalVersion,
+                                 LibGit2SharpCommitSha,
+                                 LibGit2CommitSha,
+                                 Platform.ProcessorArchitecture,
+                                 features);
         }
 
         private string ReadContentFromResource(Assembly assembly, string partialResourceName)

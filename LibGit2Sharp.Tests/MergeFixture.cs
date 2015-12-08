@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using LibGit2Sharp.Tests.TestHelpers;
@@ -324,9 +323,9 @@ namespace LibGit2Sharp.Tests
 
         [Theory]
         [InlineData(true, FastForwardStrategy.Default, MergeStatus.NonFastForward)]
-        [InlineData(true, FastForwardStrategy.NoFastFoward, MergeStatus.NonFastForward)]
+        [InlineData(true, FastForwardStrategy.NoFastForward, MergeStatus.NonFastForward)]
         [InlineData(false, FastForwardStrategy.Default, MergeStatus.NonFastForward)]
-        [InlineData(false, FastForwardStrategy.NoFastFoward, MergeStatus.NonFastForward)]
+        [InlineData(false, FastForwardStrategy.NoFastForward, MergeStatus.NonFastForward)]
         public void CanNonFastForwardMergeCommit(bool fromDetachedHead, FastForwardStrategy fastForwardStrategy, MergeStatus expectedMergeStatus)
         {
             string path = SandboxMergeTestRepo();
@@ -362,7 +361,7 @@ namespace LibGit2Sharp.Tests
                     OnCheckoutProgress = (path, completed, total) => wasCalled = true,
                 };
 
-                MergeResult result = repo.Merge(commitToMerge, Constants.Signature, options);
+                repo.Merge(commitToMerge, Constants.Signature, options);
 
                 Assert.True(wasCalled);
             }
@@ -385,7 +384,7 @@ namespace LibGit2Sharp.Tests
                     CheckoutNotifyFlags = CheckoutNotifyFlags.Updated,
                 };
 
-                MergeResult result = repo.Merge(commitToMerge, Constants.Signature, options);
+                repo.Merge(commitToMerge, Constants.Signature, options);
 
                 Assert.True(wasCalled);
                 Assert.Equal(CheckoutNotifyFlags.Updated, actualNotifyFlags);
@@ -407,7 +406,7 @@ namespace LibGit2Sharp.Tests
                     OnCheckoutProgress = (path, completed, total) => wasCalled = true,
                 };
 
-                MergeResult result = repo.Merge(commitToMerge, Constants.Signature, options);
+                repo.Merge(commitToMerge, Constants.Signature, options);
 
                 Assert.True(wasCalled);
             }
@@ -430,7 +429,7 @@ namespace LibGit2Sharp.Tests
                     CheckoutNotifyFlags = CheckoutNotifyFlags.Updated,
                 };
 
-                MergeResult result = repo.Merge(commitToMerge, Constants.Signature, options);
+                repo.Merge(commitToMerge, Constants.Signature, options);
 
                 Assert.True(wasCalled);
                 Assert.Equal(CheckoutNotifyFlags.Updated, actualNotifyFlags);
@@ -504,7 +503,7 @@ namespace LibGit2Sharp.Tests
 
                 // Verify that there is a staged entry.
                 Assert.Equal(1, repoStatus.Count());
-                Assert.Equal(FileStatus.Staged, repo.RetrieveStatus("b.txt"));
+                Assert.Equal(FileStatus.ModifiedInIndex, repo.RetrieveStatus("b.txt"));
             }
         }
 
@@ -516,7 +515,7 @@ namespace LibGit2Sharp.Tests
             {
                 Commit commitToMerge = repo.Branches["fast_forward"].Tip;
 
-                MergeResult result = repo.Merge(commitToMerge, Constants.Signature, new MergeOptions() { FastForwardStrategy = FastForwardStrategy.NoFastFoward });
+                MergeResult result = repo.Merge(commitToMerge, Constants.Signature, new MergeOptions() { FastForwardStrategy = FastForwardStrategy.NoFastForward });
 
                 Assert.Equal(MergeStatus.NonFastForward, result.Status);
                 Assert.Equal("f58f780d5a0ae392efd4a924450b1bbdc0577d32", result.Commit.Id.Sha);
@@ -550,7 +549,7 @@ namespace LibGit2Sharp.Tests
             {
                 Commit commitToMerge = repo.Branches["master"].Tip;
 
-                MergeResult result = repo.Merge(commitToMerge, Constants.Signature, new MergeOptions() { FastForwardStrategy = FastForwardStrategy.NoFastFoward });
+                MergeResult result = repo.Merge(commitToMerge, Constants.Signature, new MergeOptions() { FastForwardStrategy = FastForwardStrategy.NoFastForward });
 
                 Assert.Equal(MergeStatus.UpToDate, result.Status);
                 Assert.Equal(null, result.Commit);
@@ -578,14 +577,14 @@ namespace LibGit2Sharp.Tests
         [Theory]
         [InlineData(true, FastForwardStrategy.FastForwardOnly)]
         [InlineData(false, FastForwardStrategy.FastForwardOnly)]
-        [InlineData(true, FastForwardStrategy.NoFastFoward)]
-        [InlineData(false, FastForwardStrategy.NoFastFoward)]
+        [InlineData(true, FastForwardStrategy.NoFastForward)]
+        [InlineData(false, FastForwardStrategy.NoFastForward)]
         public void MergeWithWorkDirConflictsThrows(bool shouldStage, FastForwardStrategy strategy)
         {
             // Merging the fast_forward branch results in a change to file
             // b.txt. In this test we modify the file in the working directory
             // and then attempt to perform a merge. We expect the merge to fail
-            // due to merge conflicts.
+            // due to checkout conflicts.
             string committishToMerge = "fast_forward";
 
             using (var repo = new Repository(SandboxMergeTestRepo()))
@@ -597,7 +596,7 @@ namespace LibGit2Sharp.Tests
                     repo.Stage("b.txt");
                 }
 
-                Assert.Throws<MergeConflictException>(() => repo.Merge(committishToMerge, Constants.Signature, new MergeOptions() { FastForwardStrategy = strategy }));
+                Assert.Throws<CheckoutConflictException>(() => repo.Merge(committishToMerge, Constants.Signature, new MergeOptions() { FastForwardStrategy = strategy }));
             }
         }
 
@@ -666,7 +665,6 @@ namespace LibGit2Sharp.Tests
                 Branch branch = repo.Branches[conflictBranchName];
                 Assert.NotNull(branch);
 
-                var status = repo.RetrieveStatus();
                 MergeOptions mergeOptions = new MergeOptions()
                 {
                     MergeFileFavor = fileFavorFlag,
@@ -746,6 +744,106 @@ namespace LibGit2Sharp.Tests
                 Assert.Equal(MergeStatus.FastForward, result.Status);
                 Assert.Equal(masterBranchInitialId, result.Commit.Id.Sha);
                 Assert.False(repo.RetrieveStatus().Any());
+            }
+        }
+
+
+        [Fact]
+        public void CanMergeTreeIntoSameTree()
+        {
+            string path = SandboxMergeTestRepo();
+            using (var repo = new Repository(path))
+            {
+                var master = repo.Branches["master"].Tip;
+
+                var result = repo.ObjectDatabase.MergeCommits(master, master, null);
+                Assert.Equal(MergeTreeStatus.Succeeded, result.Status);
+                Assert.Equal(0, result.Conflicts.Count());
+            }
+        }
+
+        [Fact]
+        public void CanMergeTreeIntoTreeFromUnbornBranch()
+        {
+            string path = SandboxMergeTestRepo();
+            using (var repo = new Repository(path))
+            {
+                repo.Refs.UpdateTarget("HEAD", "refs/heads/unborn");
+
+                Touch(repo.Info.WorkingDirectory, "README", "Yeah!\n");
+                repo.Index.Clear();
+                repo.Stage("README");
+
+                repo.Commit("A new world, free of the burden of the history", Constants.Signature, Constants.Signature);
+
+                var master = repo.Branches["master"].Tip;
+                var branch = repo.Branches["unborn"].Tip;
+
+                var result = repo.ObjectDatabase.MergeCommits(master, branch, null);
+                Assert.Equal(MergeTreeStatus.Succeeded, result.Status);
+                Assert.NotNull(result.Tree);
+                Assert.Equal(0, result.Conflicts.Count());
+            }
+        }
+
+        [Fact]
+        public void CanMergeCommitsAndDetectConflicts()
+        {
+            string path = SandboxMergeTestRepo();
+            using (var repo = new Repository(path))
+            {
+                repo.Refs.UpdateTarget("HEAD", "refs/heads/unborn");
+
+                repo.Index.Replace(repo.Lookup<Commit>("conflicts"));
+
+                repo.Commit("A conflicting world, free of the burden of the history", Constants.Signature, Constants.Signature);
+
+                var master = repo.Branches["master"].Tip;
+                var branch = repo.Branches["unborn"].Tip;
+
+                var result = repo.ObjectDatabase.MergeCommits(master, branch, null);
+                Assert.Equal(MergeTreeStatus.Conflicts, result.Status);
+                Assert.Null(result.Tree);
+                Assert.NotEqual(0, result.Conflicts.Count());
+            }
+        }
+
+        [Fact]
+        public void CanMergeFastForwardTreeWithoutConflicts()
+        {
+            string path = SandboxMergeTestRepo();
+            using (var repo = new Repository(path))
+            {
+                var master = repo.Lookup<Commit>("master");
+                var branch = repo.Lookup<Commit>("fast_forward");
+
+                var result = repo.ObjectDatabase.MergeCommits(master, branch, null);
+                Assert.Equal(MergeTreeStatus.Succeeded, result.Status);
+                Assert.NotNull(result.Tree);
+                Assert.Equal(0, result.Conflicts.Count());
+            }
+        }
+
+        [Fact]
+        public void CanIdentifyConflictsInMergeCommits()
+        {
+            string path = SandboxMergeTestRepo();
+            using (var repo = new Repository(path))
+            {
+                var master = repo.Lookup<Commit>("master");
+                var branch = repo.Lookup<Commit>("conflicts");
+
+                var result = repo.ObjectDatabase.MergeCommits(master, branch, null);
+
+                Assert.Equal(MergeTreeStatus.Conflicts, result.Status);
+
+                Assert.Null(result.Tree);
+                Assert.Equal(1, result.Conflicts.Count());
+
+                var conflict = result.Conflicts.First();
+                Assert.Equal(new ObjectId("8e9daea300fbfef6c0da9744c6214f546d55b279"), conflict.Ancestor.Id);
+                Assert.Equal(new ObjectId("610b16886ca829cebd2767d9196f3c4378fe60b5"), conflict.Ours.Id);
+                Assert.Equal(new ObjectId("3dd9738af654bbf1c363f6c3bbc323bacdefa179"), conflict.Theirs.Id);
             }
         }
 

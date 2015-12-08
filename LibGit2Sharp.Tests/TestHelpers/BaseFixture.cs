@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -40,7 +40,8 @@ namespace LibGit2Sharp.Tests.TestHelpers
         public static string SubmoduleTestRepoWorkingDirPath { get; private set; }
         private static string SubmoduleTargetTestRepoWorkingDirPath { get; set; }
         private static string AssumeUnchangedRepoWorkingDirPath { get; set; }
-        private static string SubmoduleSmallTestRepoWorkingDirPath { get; set; }
+        public static string SubmoduleSmallTestRepoWorkingDirPath { get; set; }
+        public static string PackBuilderTestRepoPath { get; private set; }
 
         public static DirectoryInfo ResourcesDirectory { get; private set; }
 
@@ -49,15 +50,17 @@ namespace LibGit2Sharp.Tests.TestHelpers
         protected static DateTimeOffset TruncateSubSeconds(DateTimeOffset dto)
         {
             int seconds = dto.ToSecondsSinceEpoch();
-            return Epoch.ToDateTimeOffset(seconds, (int) dto.Offset.TotalMinutes);
+            return Epoch.ToDateTimeOffset(seconds, (int)dto.Offset.TotalMinutes);
         }
 
         private static void SetUpTestEnvironment()
         {
             IsFileSystemCaseSensitive = IsFileSystemCaseSensitiveInternal();
 
+            string initialAssemblyParentFolder = Directory.GetParent(new Uri(typeof(BaseFixture).Assembly.EscapedCodeBase).LocalPath).FullName;
+
             const string sourceRelativePath = @"../../Resources";
-            ResourcesDirectory = new DirectoryInfo(sourceRelativePath);
+            ResourcesDirectory = new DirectoryInfo(Path.Combine(initialAssemblyParentFolder, sourceRelativePath));
 
             // Setup standard paths to our test repositories
             BareTestRepoPath = Path.Combine(sourceRelativePath, "testrepo.git");
@@ -71,7 +74,23 @@ namespace LibGit2Sharp.Tests.TestHelpers
             SubmoduleTestRepoWorkingDirPath = Path.Combine(sourceRelativePath, "submodule_wd");
             SubmoduleTargetTestRepoWorkingDirPath = Path.Combine(sourceRelativePath, "submodule_target_wd");
             AssumeUnchangedRepoWorkingDirPath = Path.Combine(sourceRelativePath, "assume_unchanged_wd");
-            SubmoduleSmallTestRepoWorkingDirPath = Path.Combine(ResourcesDirectory.FullName, "submodule_small_wd");
+            SubmoduleSmallTestRepoWorkingDirPath = Path.Combine(sourceRelativePath, "submodule_small_wd");
+            PackBuilderTestRepoPath = Path.Combine(sourceRelativePath, "packbuilder_testrepo_wd");
+
+            CleanupTestReposOlderThan(TimeSpan.FromMinutes(15));
+        }
+
+        private static void CleanupTestReposOlderThan(TimeSpan olderThan)
+        {
+            var oldTestRepos = new DirectoryInfo(Constants.TemporaryReposPath)
+                .EnumerateDirectories()
+                .Where(di => di.CreationTimeUtc < DateTimeOffset.Now.Subtract(olderThan))
+                .Select(di => di.FullName);
+
+            foreach (var dir in oldTestRepos)
+            {
+                DirectoryHelper.DeleteDirectory(dir);
+            }
         }
 
         private static bool IsFileSystemCaseSensitiveInternal()
@@ -89,14 +108,6 @@ namespace LibGit2Sharp.Tests.TestHelpers
             Directory.Delete(mixedPath);
 
             return !isInsensitive;
-        }
-
-        // Should match LibGit2Sharp.Core.NativeMethods.IsRunningOnLinux()
-        protected static bool IsRunningOnLinux()
-        {
-            // see http://mono-project.com/FAQ%3a_Technical#Mono_Platforms
-            var p = (int)Environment.OSVersion.Platform;
-            return (p == 4) || (p == 6) || (p == 128);
         }
 
         protected void CreateCorruptedDeadBeefHead(string repoPath)
@@ -156,14 +167,18 @@ namespace LibGit2Sharp.Tests.TestHelpers
         {
             return Sandbox(AssumeUnchangedRepoWorkingDirPath);
         }
-        
+
         public string SandboxSubmoduleSmallTestRepo()
         {
-            var submoduleTarget = Path.Combine(ResourcesDirectory.FullName, "submodule_target_wd");
-            var path = Sandbox(SubmoduleSmallTestRepoWorkingDirPath, submoduleTarget);
+            var path = Sandbox(SubmoduleSmallTestRepoWorkingDirPath, SubmoduleTargetTestRepoWorkingDirPath);
             Directory.CreateDirectory(Path.Combine(path, "submodule_target_wd"));
 
             return path;
+        }
+
+        protected string SandboxPackBuilderTestRepo()
+        {
+            return Sandbox(PackBuilderTestRepoPath);
         }
 
         protected string Sandbox(string sourceDirectoryPath, params string[] additionalSourcePaths)
@@ -252,7 +267,7 @@ namespace LibGit2Sharp.Tests.TestHelpers
                 throw new InvalidOperationException("Cannot access Mono.RunTime.GetDisplayName() method.");
             }
 
-            var version = (string) displayName.Invoke(null, null);
+            var version = (string)displayName.Invoke(null, null);
 
             System.Version current;
 
@@ -320,29 +335,29 @@ namespace LibGit2Sharp.Tests.TestHelpers
         /// Creates a configuration file with user.name and user.email set to signature
         /// </summary>
         /// <remarks>The configuration file will be removed automatically when the tests are finished</remarks>
-        /// <param name="signature">The signature to use for user.name and user.email</param>
+        /// <param name="identity">The identity to use for user.name and user.email</param>
         /// <returns>The path to the configuration file</returns>
-        protected string CreateConfigurationWithDummyUser(Signature signature)
+        protected string CreateConfigurationWithDummyUser(Identity identity)
         {
-            return CreateConfigurationWithDummyUser(signature.Name, signature.Email);
+            return CreateConfigurationWithDummyUser(identity.Name, identity.Email);
         }
 
         protected string CreateConfigurationWithDummyUser(string name, string email)
         {
             SelfCleaningDirectory scd = BuildSelfCleaningDirectory();
-            Directory.CreateDirectory(scd.DirectoryPath);
-            string configFilePath = Path.Combine(scd.DirectoryPath, "global-config");
 
-            using (Configuration config = new Configuration(configFilePath))
+            string configFilePath = Touch(scd.DirectoryPath, "fake-config");
+
+            using (Configuration config = Configuration.BuildFrom(configFilePath))
             {
                 if (name != null)
                 {
-                    config.Set("user.name", name, ConfigurationLevel.Global);
+                    config.Set("user.name", name);
                 }
 
                 if (email != null)
                 {
-                    config.Set("user.email", email, ConfigurationLevel.Global);
+                    config.Set("user.email", email);
                 }
             }
 
@@ -353,13 +368,13 @@ namespace LibGit2Sharp.Tests.TestHelpers
         /// Asserts that the commit has been authored and committed by the specified signature
         /// </summary>
         /// <param name="commit">The commit</param>
-        /// <param name="signature">The signature to compare author and commiter to</param>
-        protected void AssertCommitSignaturesAre(Commit commit, Signature signature)
+        /// <param name="identity">The identity to compare author and commiter to</param>
+        protected void AssertCommitIdentitiesAre(Commit commit, Identity identity)
         {
-            Assert.Equal(signature.Name, commit.Author.Name);
-            Assert.Equal(signature.Email, commit.Author.Email);
-            Assert.Equal(signature.Name, commit.Committer.Name);
-            Assert.Equal(signature.Email, commit.Committer.Email);
+            Assert.Equal(identity.Name, commit.Author.Name);
+            Assert.Equal(identity.Email, commit.Author.Email);
+            Assert.Equal(identity.Name, commit.Committer.Name);
+            Assert.Equal(identity.Email, commit.Committer.Email);
         }
 
         protected static string Touch(string parent, string file, string content = null, Encoding encoding = null)
@@ -405,8 +420,8 @@ namespace LibGit2Sharp.Tests.TestHelpers
         }
 
         protected static void AssertRefLogEntry(IRepository repo, string canonicalName,
-                                                ObjectId to, string message, ObjectId @from = null,
-                                                Signature committer = null)
+                                                string message, ObjectId @from, ObjectId to,
+                                                Identity committer, DateTimeOffset before)
         {
             var reflogEntry = repo.Refs.Log(canonicalName).First();
 
@@ -414,9 +429,8 @@ namespace LibGit2Sharp.Tests.TestHelpers
             Assert.Equal(message, reflogEntry.Message);
             Assert.Equal(@from ?? ObjectId.Zero, reflogEntry.From);
 
-            committer = committer ?? repo.Config.BuildSignature(DateTimeOffset.Now);
-            Assert.Equal(committer.Email, reflogEntry.Commiter.Email);
-            Assert.InRange(reflogEntry.Commiter.When, committer.When - TimeSpan.FromSeconds(5), committer.When);
+            Assert.Equal(committer.Email, reflogEntry.Committer.Email);
+            Assert.InRange(reflogEntry.Committer.When, before, DateTimeOffset.Now);
         }
 
         protected static void EnableRefLog(IRepository repository, bool enable = true)
@@ -454,6 +468,11 @@ namespace LibGit2Sharp.Tests.TestHelpers
             where T : IBelongToARepository
         {
             Assert.Same(repo, ((IBelongToARepository)instance).Repository);
+        }
+
+        protected void CreateAttributesFile(IRepository repo, string attributeEntry)
+        {
+            Touch(repo.Info.WorkingDirectory, ".gitattributes", attributeEntry);
         }
     }
 }
