@@ -35,16 +35,18 @@ namespace LibGit2Sharp.Tests.TestHelpers
         // ... return new DefaultCredentials();
 
 
-        public static partial string GetPrivateRepoUrl();
-        public static partial Credentials GetPrivateRepoCredentials();
+        public static partial void GetPrivateRepoUrl();
+        public static partial void GetPrivateRepoCredentials();
 
-        public const string PrivateRepoUrl
+        static string privateRepoUrl = "";
+        static Credentials privateRepoCredentials = null;
+
+        public static string PrivateRepoUrl
         {
             get
             {
-                string ret = "";
-                ret = GetPrivateRepoUrl();
-                return ret;
+                GetPrivateRepoUrl();
+                return privateRepoUrl;
             }
         }
 
@@ -60,9 +62,8 @@ namespace LibGit2Sharp.Tests.TestHelpers
         public static Credentials PrivateRepoCredentials(string url, string usernameFromUrl,
                                                          SupportedCredentialTypes types)
         {
-            Credentials ret = null;
-            ret = GetPrivateRepoCredentials(url, usernameFromUrl, types);
-            return ret;
+            GetPrivateRepoCredentials(url, usernameFromUrl, types);
+            return privateRepoCredentials;
         }
 
         public static string BuildPath()
