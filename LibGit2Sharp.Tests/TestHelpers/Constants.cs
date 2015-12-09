@@ -7,7 +7,7 @@ using LibGit2Sharp.Core;
 
 namespace LibGit2Sharp.Tests.TestHelpers
 {
-    public partial static class Constants
+    public static partial class Constants
     {
         public static readonly string TemporaryReposPath = BuildPath();
         public const string UnknownSha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
