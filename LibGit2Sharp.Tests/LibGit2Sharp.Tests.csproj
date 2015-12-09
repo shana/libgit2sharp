@@ -113,6 +113,7 @@
     <Compile Include="BranchFixture.cs" />
     <Compile Include="CommitFixture.cs" />
     <Compile Include="TestHelpers\Constants.cs" />
+    <Compile Include="TestHelpers\Constants.Generated.cs" Condition="Exists('TestHelpers\Constants.Generated.cs')"/>
     <Compile Include="EpochFixture.cs" />
     <Compile Include="IndexFixture.cs" />
     <Compile Include="ObjectIdFixture.cs" />

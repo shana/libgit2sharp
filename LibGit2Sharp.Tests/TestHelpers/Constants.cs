@@ -7,7 +7,7 @@ using LibGit2Sharp.Core;
 
 namespace LibGit2Sharp.Tests.TestHelpers
 {
-    public static class Constants
+    public partial static class Constants
     {
         public static readonly string TemporaryReposPath = BuildPath();
         public const string UnknownSha = "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
@@ -34,7 +34,19 @@ namespace LibGit2Sharp.Tests.TestHelpers
         // public const string PrivateRepoUrl = "https://tfs.contoso.com/tfs/DefaultCollection/project/_git/project";
         // ... return new DefaultCredentials();
 
-        public const string PrivateRepoUrl = "";
+
+        public static partial string GetPrivateRepoUrl();
+        public static partial Credentials GetPrivateRepoCredentials();
+
+        public const string PrivateRepoUrl
+        {
+            get
+            {
+                string ret = "";
+                ret = GetPrivateRepoUrl();
+                return ret;
+            }
+        }
 
         public static bool IsRunningOnUnix
         {
@@ -48,7 +60,9 @@ namespace LibGit2Sharp.Tests.TestHelpers
         public static Credentials PrivateRepoCredentials(string url, string usernameFromUrl,
                                                          SupportedCredentialTypes types)
         {
-            return null;
+            Credentials ret = null;
+            ret = GetPrivateRepoCredentials(url, usernameFromUrl, types);
+            return ret;
         }
 
         public static string BuildPath()
