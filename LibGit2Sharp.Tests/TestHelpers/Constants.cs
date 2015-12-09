@@ -36,7 +36,8 @@ namespace LibGit2Sharp.Tests.TestHelpers
 
 
         static partial void GetPrivateRepoUrl();
-        static partial void GetPrivateRepoCredentials();
+        static partial void GetPrivateRepoCredentials(string url, string usernameFromUrl,
+                                                         SupportedCredentialTypes types);
 
         static string privateRepoUrl = "";
         static Credentials privateRepoCredentials = null;
