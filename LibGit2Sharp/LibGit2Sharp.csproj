@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-    <Import Project="CopyNativeBinaries.props" />
+  <Import Project="CopyNativeBinaries.props" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -43,7 +43,7 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>libgit2sharp.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -128,7 +128,7 @@
     <Compile Include="IndexReucEntryCollection.cs" />
     <Compile Include="IndexNameEntry.cs" />
     <Compile Include="MergeAndCheckoutOptionsBase.cs" />
-    <Compile Include="MergeConflictException.cs" />
+    <Compile Include="CheckoutConflictException.cs" />
     <Compile Include="MergeOptions.cs" />
     <Compile Include="MergeOptionsBase.cs" />
     <Compile Include="MergeResult.cs" />
@@ -255,7 +255,7 @@
     <Compile Include="FetchHead.cs" />
     <Compile Include="Handlers.cs" />
     <Compile Include="Ignore.cs" />
-    <Compile Include="CheckoutConflictException.cs" />
+    <Compile Include="MergeConflictException.cs" />
     <Compile Include="MergeHead.cs" />
     <Compile Include="NameConflictException.cs" />
     <Compile Include="NonFastForwardException.cs" />
@@ -389,6 +389,8 @@
     <Compile Include="Core\GitCertificateSshType.cs" />
     <Compile Include="CertificateSsh.cs" />
     <Compile Include="IDiffResult.cs" />
+    <Compile Include="Core\GitCredential.cs" />
+    <Compile Include="Core\GitCredentialUserpass.cs" />
   </ItemGroup>
   <ItemGroup>
     <CodeAnalysisDictionary Include="CustomDictionary.xml" />
@@ -397,10 +399,8 @@
     <EmbeddedResource Include="libgit2sharp_hash.txt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="libgit2sharp.snk" />
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="key.snk" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="UniqueIdentifier.targets" />
@@ -414,7 +414,7 @@
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('..\..\..\packages\LibGit2Sharp.NativeBinaries.1.0.106\build\LibGit2Sharp.NativeBinaries.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\packages\LibGit2Sharp.NativeBinaries.1.0.106\build\LibGit2Sharp.NativeBinaries.props'))" />
+    <Error Condition="!Exists('..\..\..\packages\LibGit2Sharp.NativeBinaries.1.0.129\build\LibGit2Sharp.NativeBinaries.props')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\packages\LibGit2Sharp.NativeBinaries.1.0.129\build\LibGit2Sharp.NativeBinaries.props'))" />
   </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.
        Other similar extension points exist, see Microsoft.Common.targets.
